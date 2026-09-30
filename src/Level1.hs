@@ -19,7 +19,7 @@ data Tree = Leaf | Node Tree Tree
 data Leaf'
 data Node' left right
 
-type TreeExample = Todo
+type TreeExample = Node' (Node' Leaf' Leaf') Leaf'
 
 
 -- 1.2. Безопасный zip
@@ -28,7 +28,9 @@ type TreeExample = Todo
 -- реализовать неправильно: любая ошибка не пройдёт проверку типов.
 
 vzip :: Vec n a -> Vec n b -> Vec n (a, b)
-vzip = todo "1.2"
+vzip v1 v2 = case (v1, v2) of 
+  (VNil, _) -> VNil
+  (VCons x rest1, VCons y rest2) -> VCons (x, y) $ vzip rest1 rest2
 
 
 -- 1.3. Добавление в конец
@@ -38,7 +40,9 @@ vzip = todo "1.2"
 -- дыру `_` и читайте, какой тип и какие равенства GHC от вас ожидает в каждой ветке.
 
 snoc :: Vec n a -> a -> Vec (Suc n) a
-snoc = todo "1.3"
+snoc vx x = case vx of 
+  VNil -> VCons x VNil
+  VCons el xs -> VCons el $ snoc xs x
 
 
 -- 1.4. Типизированный интерпретатор
@@ -61,9 +65,20 @@ eval = \case
   Const x -> x
   IsZero e -> eval e == 0
   If c t e -> if eval c then eval t else eval e
-  App _ _ -> todo "1.4 eval App"
-  MkPair _ _ -> todo "1.4 eval MkPair"
-  Fst _ -> todo "1.4 eval Fst"
+  App m n  -> eval m $ eval n
+  MkPair a b -> (eval a, eval b) 
+  Fst p -> fst $ eval p
+
+-- chepuxa
 
 factorial :: Int -> Int
-factorial = todo "1.4 factorial"
+factorial n = eval $ fac $ Const n
+
+mult' :: Expr Int -> Expr Int -> Expr Int 
+mult' x y = Const $ eval x * eval y
+
+pred' :: Expr Int -> Expr Int 
+pred' ei = If (IsZero ei) ei (Const $ eval ei - 1)
+
+fac :: Expr Int -> Expr Int
+fac ei = If (IsZero ei) (Const 1) (mult' ei $ fac $ pred' ei)
